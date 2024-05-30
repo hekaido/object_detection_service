@@ -1,0 +1,11 @@
+HOST: "localhost"
+PORT: 5432
+API_VERSION: (0, 11, 5)
+FRAMES_TOPIC: "frames"
+STATE_TABLE: "states"
+RESULT_TABLE: "results"
+SHEMA_NAME: "video_detection_service"
+DB_PASSWORD: "c11c21cC"
+DB_USER: "postgres"
+DB_NAME: "postgres"
+MODEL_PATH: "model/yolov8n.pt"
