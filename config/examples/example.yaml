@@ -1,9 +1,10 @@
-HOST: "localhost"
-PORT: 5432
-API_VERSION: (0, 11, 5)
+HOST: 'localhost'
+PORT: 5003
+KAFKA_PORT: 5003
+API_VERSION: (0.10.2.1)
 FRAMES_TOPIC: "frames"
 STATE_TABLE: "states"
-RESULT_TABLE: "results"
+RESULT_TABLE: "predictions"
 SHEMA_NAME: "video_detection_service"
 DB_PASSWORD: "c11c21cC"
 DB_USER: "postgres"
