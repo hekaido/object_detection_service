@@ -15,13 +15,15 @@ async def get_entites(message):
 
 async def consume() -> None:
     config = await get_config(CONFIG_PATH)
+
     consumer = AIOKafkaConsumer(
         config.FRAMES_TOPIC,
         bootstrap_servers=f'{config.HOST}:{config.PORT}',
         value_deserializer=lambda m: json.loads(m.decode("utf-8"))
     )
     await consumer.start()
-    video_id, frame_counter = '', 1
+
+    video_id = ''
     model = YOLO(config.MODEL_PATH, verbose=False)
     async for message in consumer:
         (m_frame, m_frame_id, m_video_id, m_frames) = await get_entites(message) 
@@ -29,7 +31,6 @@ async def consume() -> None:
         if message.topic == config.FRAMES_TOPIC:
             if video_id != m_video_id:
                 video_id = m_video_id
-                frame_counter = 1
                 total_frames = m_frames
                 state = await get_state(video_id, config=config)
                 state = state[0]['status']
@@ -48,38 +49,16 @@ async def consume() -> None:
                 print('skipping processing video with {video_id} id')
                 continue
 
-            frame_counter += 1
-            frame = m_frame
-            video_id = m_video_id
-            frame_id = m_frame_id
+            frame, video_id, frame_id = m_frame, m_video_id, m_frame_id
             preprocessed_frame = await preprocess(frame)
             prediction = await detect(preprocessed_frame, model)
-            
-            if len(prediction[0].boxes.xyxy) > 0:
-                predictions = {
-                    "frame_id": frame_id,
-                    "boxes": prediction[0].boxes.xyxy.tolist(),
-                    "conf": prediction[0].boxes.conf.tolist(),
-                    "cls": prediction[0].boxes.cls.tolist()
-                }
-            else:
-                predictions = {
-                    "frame_id": frame_id,
-                    "boxes": ["nothing_detected"],
-                    "conf": ["nothing_detected"],
-                    "cls": ["nothing_detected"]
-                }
-            
-            print('frame_counter: ', frame_counter, frame_id, total_frames)
-            
-            #TODO: проверить6 что с последним кадром будет завершена обработка всего видео
-            if frame_id == total_frames - 1:
-                await update_state(state=config.STATES["COMPLETE"], video_id=video_id, config=config)
-                frame_counter = 1
-                
-            await save_prediction(predictions, video_id, config=config)
+            prediction.update({'frame_id': frame_id})
+            print('frame_counter: ', frame_id, total_frames)
+            if frame_id == total_frames:
+                await update_state(state=config.STATES["COMPLETE"], video_id=video_id, config=config)                
+            await save_prediction(prediction, video_id, config=config)
         else:
-            print('Not a FRAME_TOPIC')
+            print('Message is not realted to frame topic')
     await consumer.stop()
 
 if __name__ == "__main__":
